@@ -1,0 +1,439 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .quiz-wrap { padding: 1.5rem 0; max-width: 680px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Header bar */
+  .quiz-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .quiz-logo { display: flex; align-items: center; gap: 8px; }
+  .logo-badge { background: #534AB7; color: #fff; font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: var(--border-radius-md); letter-spacing: 0.03em; }
+  .quiz-meta { font-size: 13px; color: var(--color-text-secondary); }
+
+  /* Progress */
+  .progress-bar-track { height: 4px; background: var(--color-background-secondary); border-radius: 99px; margin-bottom: 1.25rem; }
+  .progress-bar-fill { height: 100%; border-radius: 99px; background: #534AB7; transition: width 0.4s ease; }
+
+  /* Question card */
+  .q-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.5rem; margin-bottom: 1rem; }
+  .q-type-badge { font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: var(--border-radius-md); display: inline-flex; align-items: center; gap: 4px; margin-bottom: 0.75rem; }
+  .badge-single { background: #EEEDFE; color: #3C3489; }
+  .badge-multi { background: #E1F5EE; color: #085041; }
+  .badge-fill { background: #FAEEDA; color: #633806; }
+  .badge-order { background: #FAECE7; color: #712B13; }
+
+  .q-text { font-size: 17px; font-weight: 500; color: var(--color-text-primary); line-height: 1.5; margin-bottom: 1.25rem; }
+  .q-hint { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; }
+
+  /* Options */
+  .options-grid { display: flex; flex-direction: column; gap: 8px; }
+  .option-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; text-align: left; font-size: 15px; color: var(--color-text-primary); transition: background 0.15s, border-color 0.15s; }
+  .option-btn:hover { background: var(--color-background-secondary); border-color: var(--color-border-primary); }
+  .option-btn.selected { border: 1.5px solid #534AB7; background: #EEEDFE; color: #3C3489; }
+  .option-btn.correct { border: 1.5px solid #0F6E56; background: #E1F5EE; color: #085041; }
+  .option-btn.wrong { border: 1.5px solid #993C1D; background: #FAECE7; color: #712B13; }
+  .option-btn.reveal-correct { border: 1.5px solid #0F6E56; background: #E1F5EE; color: #085041; }
+  .option-btn:disabled { cursor: default; }
+  .opt-key { font-size: 12px; font-weight: 500; width: 22px; height: 22px; border-radius: 4px; background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .option-btn.selected .opt-key { background: #534AB7; color: #fff; }
+  .option-btn.correct .opt-key, .option-btn.reveal-correct .opt-key { background: #0F6E56; color: #fff; }
+  .option-btn.wrong .opt-key { background: #993C1D; color: #fff; }
+
+  /* Fill in blank */
+  .fill-input { width: 100%; padding: 12px 16px; font-size: 15px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); }
+  .fill-input:focus { outline: none; border-color: #534AB7; box-shadow: 0 0 0 2px #EEEDFE; }
+  .fill-input.correct { border-color: #0F6E56; background: #E1F5EE; color: #085041; }
+  .fill-input.wrong { border-color: #993C1D; background: #FAECE7; color: #712B13; }
+
+  /* Order drag */
+  .order-list { display: flex; flex-direction: column; gap: 6px; }
+  .order-item { display: flex; align-items: center; gap: 10px; padding: 11px 14px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: grab; font-size: 14px; color: var(--color-text-primary); user-select: none; }
+  .order-item:active { cursor: grabbing; }
+  .order-item.dragging { opacity: 0.4; }
+  .order-item.drag-over { border-color: #534AB7; background: #EEEDFE; }
+  .order-item.correct { border-color: #0F6E56; background: #E1F5EE; color: #085041; }
+  .order-item.wrong { border-color: #993C1D; background: #FAECE7; color: #712B13; }
+  .drag-handle { color: var(--color-text-secondary); font-size: 16px; }
+
+  /* Feedback */
+  .feedback-box { margin-top: 0.75rem; padding: 10px 14px; border-radius: var(--border-radius-md); font-size: 13px; line-height: 1.5; display: none; }
+  .feedback-box.show { display: block; }
+  .feedback-box.correct { background: #E1F5EE; color: #085041; border: 0.5px solid #5DCAA5; }
+  .feedback-box.wrong { background: #FAECE7; color: #712B13; border: 0.5px solid #F0997B; }
+
+  /* Actions */
+  .action-row { display: flex; gap: 10px; margin-top: 1rem; }
+  .btn-primary { padding: 10px 20px; background: #534AB7; color: #fff; border: none; border-radius: var(--border-radius-md); font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.4; cursor: default; }
+  .btn-secondary { padding: 10px 20px; background: transparent; color: var(--color-text-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 15px; cursor: pointer; }
+  .btn-secondary:hover { background: var(--color-background-secondary); }
+
+  /* Score screen */
+  .score-ring { width: 120px; height: 120px; margin: 0 auto 1.25rem; position: relative; }
+  .score-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .score-ring-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+  .score-pct { font-size: 26px; font-weight: 500; color: var(--color-text-primary); }
+  .score-sub { font-size: 12px; color: var(--color-text-secondary); }
+  .score-title { font-size: 22px; font-weight: 500; text-align: center; color: var(--color-text-primary); margin-bottom: 0.5rem; }
+  .score-desc { font-size: 14px; color: var(--color-text-secondary); text-align: center; margin-bottom: 1.5rem; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+  .stat-lbl { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+
+  /* Review */
+  .review-item { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 12px 14px; margin-bottom: 8px; }
+  .review-q { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .review-ans { font-size: 13px; color: var(--color-text-secondary); }
+  .review-ans span { font-weight: 500; }
+  .review-ans .ok { color: #0F6E56; }
+  .review-ans .no { color: #993C1D; }
+
+  /* Home screen */
+  .home-hero { text-align: center; padding: 1rem 0 2rem; }
+  .home-title { font-size: 28px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 0.5rem; }
+  .home-sub { font-size: 15px; color: var(--color-text-secondary); margin-bottom: 2rem; }
+  .category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .cat-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem 1rem; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .cat-card:hover { border-color: var(--color-border-primary); background: var(--color-background-secondary); }
+  .cat-card.selected { border: 1.5px solid #534AB7; background: #EEEDFE; }
+  .cat-icon { font-size: 26px; margin-bottom: 8px; }
+  .cat-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+  .cat-count { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+  .difficulty-row { display: flex; gap: 8px; margin-bottom: 1.5rem; justify-content: center; }
+  .diff-btn { padding: 7px 18px; border-radius: 99px; border: 0.5px solid var(--color-border-secondary); background: transparent; font-size: 13px; color: var(--color-text-secondary); cursor: pointer; }
+  .diff-btn.active { background: #534AB7; color: #fff; border-color: #534AB7; }
+</style>
+
+<div class="quiz-wrap">
+  <h2 class="sr-only">SkillCraft Technology interactive quiz game with multiple question types</h2>
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="screen-home">
+    <div class="quiz-header">
+      <div class="quiz-logo">
+        <i class="ti ti-bulb" style="font-size:20px;color:#534AB7" aria-hidden="true"></i>
+        <span style="font-weight:500;font-size:15px;color:var(--color-text-primary)">SkillCraft Quiz</span>
+      </div>
+      <span class="logo-badge">Beta</span>
+    </div>
+    <div class="home-hero">
+      <div class="home-title">Test your knowledge</div>
+      <div class="home-sub">Pick a topic and challenge yourself across 4 question types</div>
+    </div>
+    <div class="category-grid" id="cat-grid"></div>
+    <div style="font-size:13px;color:var(--color-text-secondary);text-align:center;margin-bottom:0.75rem;">Difficulty</div>
+    <div class="difficulty-row">
+      <button class="diff-btn active" onclick="setDiff(this,'easy')">Easy</button>
+      <button class="diff-btn" onclick="setDiff(this,'medium')">Medium</button>
+      <button class="diff-btn" onclick="setDiff(this,'hard')">Hard</button>
+    </div>
+    <div style="text-align:center">
+      <button class="btn-primary" id="start-btn" onclick="startQuiz()" disabled>
+        <i class="ti ti-player-play" aria-hidden="true"></i> Start quiz
+      </button>
+    </div>
+  </div>
+
+  <!-- QUESTION SCREEN -->
+  <div class="screen" id="screen-quiz">
+    <div class="quiz-header">
+      <div class="quiz-logo">
+        <i class="ti ti-bulb" style="font-size:20px;color:#534AB7" aria-hidden="true"></i>
+        <span style="font-weight:500;font-size:15px;color:var(--color-text-primary)">SkillCraft Quiz</span>
+      </div>
+      <div class="quiz-meta" id="q-counter">Question 1 of 7</div>
+    </div>
+    <div class="progress-bar-track"><div class="progress-bar-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="q-card">
+      <div id="q-badge" class="q-type-badge badge-single"><i class="ti ti-circle-dot" aria-hidden="true"></i> Single choice</div>
+      <div class="q-text" id="q-text"></div>
+      <div class="q-hint" id="q-hint"></div>
+      <div id="q-body"></div>
+      <div class="feedback-box" id="feedback-box"></div>
+    </div>
+    <div class="action-row">
+      <button class="btn-primary" id="check-btn" onclick="checkAnswer()">Check answer</button>
+      <button class="btn-secondary" id="next-btn" onclick="nextQuestion()" style="display:none">Next <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  <!-- SCORE SCREEN -->
+  <div class="screen" id="screen-score">
+    <div class="quiz-header">
+      <div class="quiz-logo">
+        <i class="ti ti-bulb" style="font-size:20px;color:#534AB7" aria-hidden="true"></i>
+        <span style="font-weight:500;font-size:15px;color:var(--color-text-primary)">SkillCraft Quiz</span>
+      </div>
+    </div>
+    <div class="q-card" style="text-align:center;padding:2rem 1.5rem;">
+      <div class="score-ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="#EEEDFE" stroke-width="10"/><circle id="score-arc" cx="60" cy="60" r="52" fill="none" stroke="#534AB7" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg><div class="score-ring-label"><div class="score-pct" id="score-pct">0%</div><div class="score-sub">score</div></div></div>
+      <div class="score-title" id="score-title">Great job!</div>
+      <div class="score-desc" id="score-desc"></div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-val" id="s-correct" style="color:#0F6E56">0</div><div class="stat-lbl">Correct</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-wrong" style="color:#993C1D">0</div><div class="stat-lbl">Wrong</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-time">0s</div><div class="stat-lbl">Time</div></div>
+      </div>
+    </div>
+    <div style="margin-top:1rem">
+      <div style="font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:0.75rem">Review answers</div>
+      <div id="review-list"></div>
+    </div>
+    <div class="action-row" style="margin-top:1rem">
+      <button class="btn-primary" onclick="goHome()"><i class="ti ti-home" aria-hidden="true"></i> Play again</button>
+      <button class="btn-secondary" onclick="sendPrompt('Can you give me harder questions on this topic?')">Harder questions ↗</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const QUESTIONS_DB = {
+  science: [
+    { type:'single', text:'What is the chemical symbol for gold?', options:['Au','Ag','Fe','Go'], answer:0, explanation:'Au comes from the Latin word "Aurum" meaning gold.' },
+    { type:'multi', text:'Which of the following are noble gases?', options:['Helium','Oxygen','Neon','Nitrogen','Argon'], answer:[0,2,4], explanation:'Helium (He), Neon (Ne), and Argon (Ar) are noble gases in Group 18.' },
+    { type:'fill', text:'The speed of light is approximately _____ km/s.', answer:'300000', accept:['3×10^5','300,000','299792'], explanation:'The speed of light is ~299,792 km/s, often rounded to 300,000 km/s.' },
+    { type:'single', text:'Which planet has the most moons in our solar system?', options:['Jupiter','Saturn','Uranus','Neptune'], answer:1, explanation:'Saturn has 146 confirmed moons, surpassing Jupiter.' },
+    { type:'order', text:'Arrange the planets from closest to farthest from the Sun:', items:['Mercury','Venus','Earth','Mars','Jupiter'], answer:[0,1,2,3,4], explanation:'Mercury → Venus → Earth → Mars → Jupiter is the correct order.' },
+    { type:'multi', text:'Which are layers of Earth\'s atmosphere?', options:['Troposphere','Hydrosphere','Stratosphere','Lithosphere','Mesosphere'], answer:[0,2,4], explanation:'Troposphere, Stratosphere, and Mesosphere are atmospheric layers.' },
+    { type:'fill', text:'DNA stands for Deoxyribonucleic _____', answer:'acid', accept:['Acid'], explanation:'DNA = Deoxyribonucleic Acid, the molecule carrying genetic information.' },
+  ],
+  tech: [
+    { type:'single', text:'What does "HTTP" stand for?', options:['HyperText Transfer Protocol','High Transfer Text Protocol','Hyper Transfer Text Program','HyperText Transmission Process'], answer:0, explanation:'HTTP = HyperText Transfer Protocol, the foundation of data on the web.' },
+    { type:'multi', text:'Which are JavaScript frameworks or libraries?', options:['React','Django','Vue','Laravel','Angular'], answer:[0,2,4], explanation:'React, Vue, and Angular are JavaScript-based frontend technologies.' },
+    { type:'fill', text:'In Python, the keyword to define a function is _____.', answer:'def', accept:['def'], explanation:'"def" is the Python keyword to define a function, e.g., def my_func():' },
+    { type:'order', text:'Order these from lowest to highest abstraction level:', items:['Machine code','Assembly','C','Python','English-like pseudocode'], answer:[0,1,2,3,4], explanation:'Machine code → Assembly → C → Python → Pseudocode is correct.' },
+    { type:'single', text:'Which data structure follows LIFO order?', options:['Queue','Stack','Linked List','Tree'], answer:1, explanation:'A Stack follows Last-In, First-Out (LIFO) order.' },
+    { type:'multi', text:'Which are cloud service providers?', options:['AWS','Shopify','Azure','WordPress','GCP'], answer:[0,2,4], explanation:'AWS (Amazon), Azure (Microsoft), and GCP (Google) are major cloud providers.' },
+    { type:'fill', text:'CSS stands for Cascading Style _____.', answer:'sheets', accept:['Sheets'], explanation:'CSS = Cascading Style Sheets, used for styling web pages.' },
+  ],
+  history: [
+    { type:'single', text:'In which year did World War II end?', options:['1943','1944','1945','1946'], answer:2, explanation:'World War II ended in 1945 with Germany surrendering in May and Japan in September.' },
+    { type:'multi', text:'Which were Allied Powers in World War II?', options:['USA','Germany','UK','Japan','Soviet Union'], answer:[0,2,4], explanation:'The USA, UK, and Soviet Union were the major Allied Powers.' },
+    { type:'fill', text:'The French Revolution began in _____.', answer:'1789', accept:['1789'], explanation:'The French Revolution began in 1789 with the storming of the Bastille.' },
+    { type:'order', text:'Order these empires from earliest to latest founding:', items:['Roman Empire','Mongol Empire','Ottoman Empire','British Empire','American Republic'], answer:[0,1,2,3,4], explanation:'Roman (27 BC) → Mongol (1206) → Ottoman (1299) → British (1583) → USA (1776).' },
+    { type:'single', text:'Who was the first President of the United States?', options:['John Adams','Thomas Jefferson','George Washington','Benjamin Franklin'], answer:2, explanation:'George Washington served as the first U.S. President from 1789–1797.' },
+    { type:'multi', text:'Which countries were part of the original European Union?', options:['France','Norway','Germany','UK (1973)','Italy'], answer:[0,2,4], explanation:'France, Germany, and Italy were among the six founding EEC nations in 1957.' },
+    { type:'fill', text:'The Great Wall of China was primarily built during the _____ Dynasty.', answer:'Ming', accept:['ming','MING'], explanation:'Most of the existing Great Wall was built during the Ming Dynasty (1368–1644).' },
+  ],
+  math: [
+    { type:'single', text:'What is the value of π (pi) to 2 decimal places?', options:['3.12','3.14','3.16','3.18'], answer:1, explanation:'π ≈ 3.14159…, so to 2 decimal places it is 3.14.' },
+    { type:'multi', text:'Which of these numbers are prime?', options:['2','9','13','21','37'], answer:[0,2,4], explanation:'2, 13, and 37 are prime numbers. 9 = 3×3, 21 = 3×7.' },
+    { type:'fill', text:'The square root of 144 is _____.', answer:'12', accept:['12'], explanation:'√144 = 12, because 12 × 12 = 144.' },
+    { type:'order', text:'Order these from smallest to largest value:', items:['1/4','0.3','33%','π/10','1/2'], answer:[0,1,2,3,4], explanation:'0.25 < 0.3 < 0.33 < 0.314 < 0.5 — note π/10 ≈ 0.314.' },
+    { type:'single', text:'What is 15% of 200?', options:['20','25','30','35'], answer:2, explanation:'15% of 200 = 0.15 × 200 = 30.' },
+    { type:'multi', text:'Which are properties of a rectangle?', options:['4 right angles','Equal diagonals','All sides equal','Opposite sides parallel','Opposite sides equal'], answer:[0,1,3,4], explanation:'A rectangle has 4 right angles, equal diagonals, parallel and equal opposite sides.' },
+    { type:'fill', text:'In a right triangle, a²+b²=_____', answer:'c²', accept:['c2','c^2','C²','C2'], explanation:'The Pythagorean theorem: a² + b² = c² where c is the hypotenuse.' },
+  ],
+};
+
+const CATS = [
+  { id:'science', name:'Science', icon:'ti-flask', count:'7 questions' },
+  { id:'tech', name:'Technology', icon:'ti-cpu', count:'7 questions' },
+  { id:'history', name:'History', icon:'ti-building-arch', count:'7 questions' },
+  { id:'math', name:'Mathematics', icon:'ti-math-function', count:'7 questions' },
+];
+
+let state = { cat:null, diff:'easy', questions:[], idx:0, answers:[], score:0, startTime:0, dragSrc:null };
+
+function setDiff(btn, d) {
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.diff = d;
+}
+
+function buildCats() {
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = '';
+  CATS.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cat-card';
+    el.innerHTML = `<div class="cat-icon"><i class="ti ${c.icon}" style="font-size:28px;color:#534AB7" aria-hidden="true"></i></div><div class="cat-name">${c.name}</div><div class="cat-count">${c.count}</div>`;
+    el.onclick = () => { document.querySelectorAll('.cat-card').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); state.cat=c.id; document.getElementById('start-btn').disabled=false; };
+    grid.appendChild(el);
+  });
+}
+
+function startQuiz() {
+  let qs = [...QUESTIONS_DB[state.cat]];
+  if (state.diff === 'medium') qs = [...qs.slice(0,3),...qs.slice(4)];
+  if (state.diff === 'hard') qs = qs.slice(2);
+  state.questions = qs;
+  state.idx = 0; state.answers = []; state.score = 0; state.startTime = Date.now();
+  showScreen('screen-quiz');
+  renderQuestion();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function renderQuestion() {
+  const q = state.questions[state.idx];
+  const total = state.questions.length;
+  const pct = (state.idx/total)*100;
+  document.getElementById('q-counter').textContent = `Question ${state.idx+1} of ${total}`;
+  document.getElementById('prog-fill').style.width = pct+'%';
+
+  const badge = document.getElementById('q-badge');
+  const typeMap = { single:['badge-single','ti-circle-dot','Single choice'], multi:['badge-multi','ti-checkbox','Multi select'], fill:['badge-fill','ti-pencil','Fill in blank'], order:['badge-order','ti-arrows-sort','Reorder'] };
+  const [cls, icon, label] = typeMap[q.type];
+  badge.className = 'q-type-badge '+cls;
+  badge.innerHTML = `<i class="ti ${icon}" aria-hidden="true"></i> ${label}`;
+
+  document.getElementById('q-text').textContent = q.text;
+  const hint = document.getElementById('q-hint');
+  if (q.type==='multi') { hint.innerHTML=`<i class="ti ti-info-circle" style="font-size:14px" aria-hidden="true"></i> Select all that apply`; hint.style.display='flex'; }
+  else if (q.type==='order') { hint.innerHTML=`<i class="ti ti-info-circle" style="font-size:14px" aria-hidden="true"></i> Drag items into the correct order`; hint.style.display='flex'; }
+  else hint.style.display='none';
+
+  const body = document.getElementById('q-body');
+  body.innerHTML = '';
+  if (q.type==='single') body.innerHTML = renderSingle(q);
+  else if (q.type==='multi') body.innerHTML = renderMulti(q);
+  else if (q.type==='fill') body.innerHTML = renderFill();
+  else if (q.type==='order') body.innerHTML = renderOrder(q);
+
+  if (q.type==='order') initDrag();
+
+  const fb = document.getElementById('feedback-box');
+  fb.className = 'feedback-box'; fb.textContent = '';
+  document.getElementById('check-btn').style.display='inline-flex';
+  document.getElementById('next-btn').style.display='none';
+  document.getElementById('check-btn').disabled=false;
+}
+
+const keys = ['A','B','C','D','E','F'];
+function renderSingle(q) {
+  return `<div class="options-grid">${q.options.map((o,i)=>`<button class="option-btn" onclick="toggleSingle(this,${i})" data-idx="${i}"><span class="opt-key">${keys[i]}</span>${o}</button>`).join('')}</div>`;
+}
+function renderMulti(q) {
+  return `<div class="options-grid">${q.options.map((o,i)=>`<button class="option-btn" onclick="toggleMulti(this,${i})" data-idx="${i}" data-sel="0"><span class="opt-key">${keys[i]}</span>${o}</button>`).join('')}</div>`;
+}
+function renderFill() {
+  return `<input class="fill-input" id="fill-input" type="text" placeholder="Type your answer…" onkeydown="if(event.key==='Enter')checkAnswer()" autocomplete="off" />`;
+}
+function renderOrder(q) {
+  const shuffled = [...q.items].sort(()=>Math.random()-0.5);
+  return `<div class="order-list" id="order-list">${shuffled.map((item,i)=>`<div class="order-item" draggable="true" data-item="${item}"><i class="ti ti-grip-vertical drag-handle" aria-hidden="true"></i>${item}</div>`).join('')}</div>`;
+}
+
+function toggleSingle(btn, idx) {
+  document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+function toggleMulti(btn, idx) {
+  const sel = btn.getAttribute('data-sel')==='1';
+  btn.setAttribute('data-sel', sel?'0':'1');
+  btn.classList.toggle('selected', !sel);
+}
+
+function initDrag() {
+  const list = document.getElementById('order-list');
+  if (!list) return;
+  let dragSrc = null;
+  list.querySelectorAll('.order-item').forEach(item => {
+    item.addEventListener('dragstart', e => { dragSrc=item; item.classList.add('dragging'); });
+    item.addEventListener('dragend', e => { item.classList.remove('dragging'); list.querySelectorAll('.order-item').forEach(i=>i.classList.remove('drag-over')); });
+    item.addEventListener('dragover', e => { e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', e => { item.classList.remove('drag-over'); });
+    item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('drag-over'); if(dragSrc&&dragSrc!==item){ const items=[...list.querySelectorAll('.order-item')]; const si=items.indexOf(dragSrc),ti=items.indexOf(item); if(si<ti)list.insertBefore(dragSrc,item.nextSibling); else list.insertBefore(dragSrc,item); } });
+  });
+}
+
+function checkAnswer() {
+  const q = state.questions[state.idx];
+  let isCorrect = false;
+  let userAns = '';
+
+  if (q.type==='single') {
+    const sel = document.querySelector('.option-btn.selected');
+    if (!sel) return;
+    const idx = parseInt(sel.getAttribute('data-idx'));
+    isCorrect = idx === q.answer;
+    userAns = q.options[idx];
+    document.querySelectorAll('.option-btn').forEach((b,i) => {
+      b.disabled = true;
+      if (i===q.answer) b.classList.add('reveal-correct');
+      if (parseInt(b.getAttribute('data-idx'))===idx && !isCorrect) b.classList.add('wrong');
+    });
+  } else if (q.type==='multi') {
+    const sel = [...document.querySelectorAll('.option-btn[data-sel="1"]')].map(b=>parseInt(b.getAttribute('data-idx'))).sort((a,b)=>a-b);
+    const correct = [...q.answer].sort((a,b)=>a-b);
+    isCorrect = JSON.stringify(sel)===JSON.stringify(correct);
+    userAns = sel.map(i=>q.options[i]).join(', ');
+    document.querySelectorAll('.option-btn').forEach((b,i) => {
+      b.disabled=true;
+      const idx=parseInt(b.getAttribute('data-idx'));
+      if(q.answer.includes(idx)) b.classList.add('reveal-correct');
+      else if(b.getAttribute('data-sel')==='1') b.classList.add('wrong');
+    });
+  } else if (q.type==='fill') {
+    const inp = document.getElementById('fill-input');
+    const val = inp.value.trim().toLowerCase();
+    const accepted = [q.answer, ...(q.accept||[])].map(a=>a.toLowerCase());
+    isCorrect = accepted.includes(val);
+    userAns = inp.value.trim();
+    inp.className = 'fill-input '+(isCorrect?'correct':'wrong');
+    inp.disabled = true;
+  } else if (q.type==='order') {
+    const list = document.getElementById('order-list');
+    const items = [...list.querySelectorAll('.order-item')].map(el=>el.getAttribute('data-item'));
+    const correct = q.answer.map(i=>q.items[i]);
+    isCorrect = JSON.stringify(items)===JSON.stringify(correct);
+    userAns = items.join(' → ');
+    list.querySelectorAll('.order-item').forEach((el,i) => {
+      if (el.getAttribute('data-item')===correct[i]) el.classList.add('correct');
+      else el.classList.add('wrong');
+      el.setAttribute('draggable','false');
+    });
+  }
+
+  if (isCorrect) state.score++;
+  state.answers.push({ q:q.text, type:q.type, correct:isCorrect, userAns, explanation:q.explanation });
+
+  const fb = document.getElementById('feedback-box');
+  fb.className = 'feedback-box show '+(isCorrect?'correct':'wrong');
+  fb.innerHTML = `<strong>${isCorrect?'✓ Correct!':'✗ Not quite'}</strong> — ${q.explanation}`;
+  document.getElementById('check-btn').style.display='none';
+  document.getElementById('next-btn').style.display='inline-flex';
+}
+
+function nextQuestion() {
+  state.idx++;
+  if (state.idx >= state.questions.length) showScore();
+  else renderQuestion();
+}
+
+function showScore() {
+  const total = state.questions.length;
+  const pct = Math.round((state.score/total)*100);
+  const elapsed = Math.round((Date.now()-state.startTime)/1000);
+  showScreen('screen-score');
+  document.getElementById('score-pct').textContent = pct+'%';
+  const circ = 2*Math.PI*52;
+  document.getElementById('score-arc').style.strokeDashoffset = circ*(1-pct/100);
+  const titles = pct>=90?['Outstanding!','You nailed it — near perfect score!']:pct>=70?['Great job!','Solid performance across all questions.']:pct>=50?['Good effort!','More than half correct — keep practicing.']:['Keep going!','Review the answers and try again.'];
+  document.getElementById('score-title').textContent = titles[0];
+  document.getElementById('score-desc').textContent = titles[1];
+  document.getElementById('s-correct').textContent = state.score;
+  document.getElementById('s-wrong').textContent = total-state.score;
+  document.getElementById('s-time').textContent = elapsed+'s';
+
+  const rl = document.getElementById('review-list');
+  rl.innerHTML = state.answers.map((a,i)=>`<div class="review-item"><div class="review-q">Q${i+1}: ${a.q}</div><div class="review-ans">Your answer: <span class="${a.correct?'ok':'no'}">${a.userAns||'—'}</span> ${a.correct?'<i class="ti ti-check" style="color:#0F6E56" aria-hidden="true"></i>':'<i class="ti ti-x" style="color:#993C1D" aria-hidden="true"></i>'}</div></div>`).join('');
+}
+
+function goHome() {
+  state.cat=null;
+  document.querySelectorAll('.cat-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('start-btn').disabled=true;
+  showScreen('screen-home');
+}
+
+buildCats();
+</script>
