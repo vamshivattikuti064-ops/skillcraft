@@ -1,0 +1,449 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --accent: #2563EB;
+    --accent-light: #EFF6FF;
+    --accent-border: #BFDBFE;
+    --done-color: #059669;
+    --done-bg: #ECFDF5;
+    --danger: #DC2626;
+    --danger-bg: #FEF2F2;
+    --warn-bg: #FFFBEB;
+    --warn: #D97706;
+    --font: 'DM Sans', sans-serif;
+    --display: 'DM Mono', monospace;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  body { font-family: var(--font); background: transparent; }
+  .app { display: flex; gap: 0; min-height: 600px; }
+  .sidebar {
+    width: 220px; min-width: 220px;
+    border-right: 0.5px solid var(--color-border-tertiary);
+    padding: 1.25rem 0;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .sidebar-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    color: var(--color-text-tertiary); padding: 0 1rem 0.5rem;
+    text-transform: uppercase;
+  }
+  .list-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 1rem; cursor: pointer;
+    border-radius: 0; font-size: 14px;
+    color: var(--color-text-secondary);
+    border: none; background: none; width: 100%; text-align: left;
+    transition: background 0.15s;
+  }
+  .list-item:hover { background: var(--color-background-secondary); }
+  .list-item.active {
+    background: var(--accent-light); color: var(--accent);
+    font-weight: 500;
+  }
+  .list-item .badge {
+    margin-left: auto; font-size: 11px; font-weight: 600;
+    background: var(--color-background-tertiary);
+    color: var(--color-text-tertiary);
+    padding: 1px 7px; border-radius: 20px;
+  }
+  .list-item.active .badge { background: var(--accent-border); color: var(--accent); }
+  .list-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .add-list-btn {
+    margin: 8px 1rem 0;
+    padding: 7px 10px;
+    border: 0.5px dashed var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: none; cursor: pointer;
+    font-size: 13px; color: var(--color-text-tertiary);
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.15s;
+  }
+  .add-list-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .main { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+  .main-header { display: flex; align-items: center; gap: 12px; }
+  .main-header h1 { font-size: 20px; font-weight: 600; color: var(--color-text-primary); flex: 1; }
+  .stats { display: flex; gap: 8px; }
+  .stat { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+  .stat.total { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+  .stat.done { background: var(--done-bg); color: var(--done-color); }
+  .stat.overdue { background: var(--danger-bg); color: var(--danger); }
+  .add-task-row {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .add-task-row input[type="text"] {
+    flex: 1; padding: 9px 14px; font-size: 14px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    outline: none; font-family: var(--font);
+  }
+  .add-task-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-border); }
+  .add-task-row input[type="datetime-local"] {
+    padding: 9px 10px; font-size: 13px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-primary);
+    color: var(--color-text-secondary);
+    outline: none; font-family: var(--font);
+  }
+  .add-task-row input[type="datetime-local"]:focus { border-color: var(--accent); }
+  .btn-add {
+    padding: 9px 18px; font-size: 14px; font-weight: 500;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: var(--border-radius-md);
+    cursor: pointer; font-family: var(--font);
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .btn-add:hover { opacity: 0.88; }
+  .filters { display: flex; gap: 6px; }
+  .filter-btn {
+    padding: 5px 14px; font-size: 13px; border-radius: 20px;
+    border: 0.5px solid var(--color-border-tertiary);
+    background: none; cursor: pointer;
+    color: var(--color-text-secondary); font-family: var(--font);
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { border-color: var(--color-border-secondary); }
+  .filter-btn.active { background: var(--color-background-secondary); color: var(--color-text-primary); font-weight: 500; border-color: var(--color-border-secondary); }
+  .tasks-list { display: flex; flex-direction: column; gap: 6px; }
+  .task-card {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 14px;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .task-card:hover { border-color: var(--color-border-secondary); }
+  .task-card.completed { opacity: 0.6; }
+  .task-card.overdue { border-left: 3px solid var(--danger); }
+  .task-card.upcoming { border-left: 3px solid var(--warn); }
+  .check-btn {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 1.5px solid var(--color-border-secondary);
+    background: none; cursor: pointer; flex-shrink: 0;
+    margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .check-btn:hover { border-color: var(--done-color); background: var(--done-bg); }
+  .check-btn.checked { background: var(--done-color); border-color: var(--done-color); }
+  .check-btn.checked::after { content: ''; display: block; width: 5px; height: 9px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg) translate(-1px,-1px); }
+  .task-body { flex: 1; min-width: 0; }
+  .task-title { font-size: 14px; color: var(--color-text-primary); font-weight: 400; word-break: break-word; }
+  .task-card.completed .task-title { text-decoration: line-through; color: var(--color-text-tertiary); }
+  .task-meta { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
+  .task-date { font-size: 12px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 3px; }
+  .task-date.overdue-label { color: var(--danger); }
+  .task-date.upcoming-label { color: var(--warn); }
+  .list-tag { font-size: 11px; padding: 1px 8px; border-radius: 20px; font-weight: 500; }
+  .task-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+  .task-card:hover .task-actions { opacity: 1; }
+  .icon-btn {
+    width: 28px; height: 28px; border-radius: var(--border-radius-md);
+    border: 0.5px solid transparent; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--color-text-tertiary); font-size: 15px;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover { background: var(--color-background-secondary); border-color: var(--color-border-tertiary); color: var(--color-text-primary); }
+  .icon-btn.del:hover { background: var(--danger-bg); color: var(--danger); }
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--color-text-tertiary); font-size: 14px; }
+  .edit-row { display: flex; gap: 6px; width: 100%; flex-wrap: wrap; margin-top: 6px; }
+  .edit-input {
+    flex: 1; min-width: 120px; padding: 6px 10px; font-size: 13px;
+    border: 0.5px solid var(--accent); border-radius: var(--border-radius-md);
+    background: var(--color-background-primary); color: var(--color-text-primary);
+    outline: none; font-family: var(--font);
+    box-shadow: 0 0 0 3px var(--accent-border);
+  }
+  .edit-dt {
+    padding: 6px 8px; font-size: 13px;
+    border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md);
+    background: var(--color-background-primary); color: var(--color-text-secondary);
+    outline: none; font-family: var(--font);
+  }
+  .edit-save {
+    padding: 6px 12px; font-size: 13px; font-weight: 500;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: var(--border-radius-md);
+    cursor: pointer; font-family: var(--font);
+  }
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem; width: 320px;
+  }
+  .modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 1rem; }
+  .modal input {
+    width: 100%; padding: 9px 12px; font-size: 14px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-primary); color: var(--color-text-primary);
+    outline: none; font-family: var(--font); margin-bottom: 0.75rem;
+  }
+  .modal input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-border); }
+  .color-picks { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .color-pick { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2.5px solid transparent; transition: border-color 0.15s; }
+  .color-pick.selected { border-color: var(--color-text-primary); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-cancel { padding: 8px 16px; font-size: 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: none; cursor: pointer; color: var(--color-text-secondary); font-family: var(--font); }
+  .btn-confirm { padding: 8px 16px; font-size: 14px; font-weight: 500; background: var(--accent); color: #fff; border: none; border-radius: var(--border-radius-md); cursor: pointer; font-family: var(--font); }
+  .progress-bar { height: 3px; background: var(--color-border-tertiary); border-radius: 2px; overflow: hidden; margin-top: 2px; }
+  .progress-fill { height: 100%; background: var(--done-color); border-radius: 2px; transition: width 0.3s; }
+</style>
+
+<h2 class="sr-only">SkillCraft Technology To-Do App — manage tasks across multiple lists</h2>
+
+<div class="app" id="app">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-title">My Lists</div>
+    <div id="lists-nav"></div>
+    <button class="add-list-btn" onclick="openAddList()">
+      <i class="ti ti-plus" aria-hidden="true"></i> New list
+    </button>
+  </div>
+  <div class="main">
+    <div class="main-header">
+      <h1 id="active-list-name">All Tasks</h1>
+      <div class="stats">
+        <span class="stat total" id="stat-total">0 tasks</span>
+        <span class="stat done" id="stat-done" style="display:none"></span>
+        <span class="stat overdue" id="stat-overdue" style="display:none"></span>
+      </div>
+    </div>
+    <div style="height: 3px; border-radius: 2px; background: var(--color-border-tertiary); overflow: hidden; margin-top: -6px;">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="add-task-row">
+      <input type="text" id="new-task-input" placeholder="Add a new task…" onkeydown="if(event.key==='Enter') addTask()" />
+      <input type="datetime-local" id="new-task-date" title="Set date & time" />
+      <button class="btn-add" onclick="addTask()"><i class="ti ti-plus" aria-hidden="true"></i> Add</button>
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" data-filter="active" onclick="setFilter('active',this)">Active</button>
+      <button class="filter-btn" data-filter="completed" onclick="setFilter('completed',this)">Completed</button>
+      <button class="filter-btn" data-filter="overdue" onclick="setFilter('overdue',this)">Overdue</button>
+    </div>
+    <div class="tasks-list" id="tasks-list"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="add-list-modal" style="display:none">
+  <div class="modal">
+    <h3>New list</h3>
+    <input type="text" id="new-list-name" placeholder="List name…" onkeydown="if(event.key==='Enter') confirmAddList()" />
+    <div style="font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 8px;">Pick a color</div>
+    <div class="color-picks" id="color-picks"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAddList()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmAddList()">Create</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#2563EB','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#BE185D','#4F46E5'];
+let lists = [
+  { id: 'personal', name: 'Personal', color: '#7C3AED' },
+  { id: 'work', name: 'Work', color: '#2563EB' },
+  { id: 'shopping', name: 'Shopping', color: '#059669' },
+];
+let tasks = [
+  { id: 1, text: 'Review project proposal', listId: 'work', done: false, dt: new Date(Date.now()+86400000*2).toISOString().slice(0,16), editing: false },
+  { id: 2, text: 'Buy groceries', listId: 'shopping', done: false, dt: new Date(Date.now()-3600000*5).toISOString().slice(0,16), editing: false },
+  { id: 3, text: 'Morning run', listId: 'personal', done: true, dt: '', editing: false },
+];
+let nextId = 4;
+let activeList = 'all';
+let filter = 'all';
+let selectedColor = COLORS[0];
+let newListColor = COLORS[0];
+
+function isOverdue(task) {
+  return task.dt && !task.done && new Date(task.dt) < new Date();
+}
+function isUpcoming(task) {
+  if (!task.dt || task.done) return false;
+  const diff = new Date(task.dt) - new Date();
+  return diff > 0 && diff < 86400000;
+}
+function fmtDate(dt) {
+  if (!dt) return '';
+  const d = new Date(dt);
+  return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function visibleTasks() {
+  let t = activeList === 'all' ? tasks : tasks.filter(x => x.listId === activeList);
+  if (filter === 'active') t = t.filter(x => !x.done);
+  else if (filter === 'completed') t = t.filter(x => x.done);
+  else if (filter === 'overdue') t = t.filter(x => isOverdue(x));
+  return t;
+}
+function getList(id) { return lists.find(l => l.id === id); }
+
+function render() {
+  renderSidebar();
+  renderTasks();
+  renderStats();
+}
+
+function renderSidebar() {
+  const nav = document.getElementById('lists-nav');
+  const allCount = tasks.filter(t=>!t.done).length;
+  let html = `<button class="list-item ${activeList==='all'?'active':''}" onclick="setList('all')">
+    <i class="ti ti-layout-list" style="font-size:16px" aria-hidden="true"></i> All Tasks
+    <span class="badge">${allCount}</span>
+  </button>`;
+  for (const l of lists) {
+    const cnt = tasks.filter(t=>t.listId===l.id&&!t.done).length;
+    html += `<button class="list-item ${activeList===l.id?'active':''}" onclick="setList('${l.id}')">
+      <span class="list-dot" style="background:${l.color}"></span>
+      ${l.name}
+      <span class="badge">${cnt}</span>
+    </button>`;
+  }
+  nav.innerHTML = html;
+}
+
+function renderStats() {
+  const vt = activeList === 'all' ? tasks : tasks.filter(x => x.listId === activeList);
+  const total = vt.length;
+  const done = vt.filter(t=>t.done).length;
+  const overdue = vt.filter(t=>isOverdue(t)).length;
+  document.getElementById('stat-total').textContent = total + ' task' + (total!==1?'s':'');
+  const sd = document.getElementById('stat-done');
+  sd.style.display = done ? '' : 'none';
+  sd.textContent = done + ' done';
+  const so = document.getElementById('stat-overdue');
+  so.style.display = overdue ? '' : 'none';
+  so.textContent = overdue + ' overdue';
+  document.getElementById('progress-fill').style.width = total ? Math.round(done/total*100)+'%' : '0%';
+  const ln = document.getElementById('active-list-name');
+  if (activeList === 'all') ln.textContent = 'All Tasks';
+  else { const l = getList(activeList); ln.textContent = l ? l.name : 'Tasks'; }
+}
+
+function renderTasks() {
+  const vt = visibleTasks();
+  const el = document.getElementById('tasks-list');
+  if (!vt.length) {
+    el.innerHTML = `<div class="empty"><i class="ti ti-checkbox" style="font-size:32px;display:block;margin-bottom:8px" aria-hidden="true"></i>No tasks here yet</div>`;
+    return;
+  }
+  el.innerHTML = vt.map(t => {
+    const od = isOverdue(t);
+    const up = isUpcoming(t);
+    const l = getList(t.listId);
+    const tagBg = l ? l.color+'22' : '#eee';
+    const tagColor = l ? l.color : '#888';
+    const cardClass = t.done ? 'completed' : (od ? 'overdue' : (up ? 'upcoming' : ''));
+    if (t.editing) {
+      return `<div class="task-card ${cardClass}">
+        <button class="check-btn ${t.done?'checked':''}" onclick="toggle(${t.id})" aria-label="${t.done?'Mark incomplete':'Mark complete'}"></button>
+        <div class="task-body" style="flex:1">
+          <div class="edit-row">
+            <input class="edit-input" id="edit-text-${t.id}" value="${t.text.replace(/"/g,'&quot;')}" onkeydown="if(event.key==='Enter') saveEdit(${t.id})" />
+            <input type="datetime-local" class="edit-dt" id="edit-dt-${t.id}" value="${t.dt||''}" />
+            <button class="edit-save" onclick="saveEdit(${t.id})">Save</button>
+            <button class="btn-cancel" style="padding:6px 10px;font-size:13px" onclick="cancelEdit(${t.id})">Cancel</button>
+          </div>
+        </div>
+      </div>`;
+    }
+    return `<div class="task-card ${cardClass}">
+      <button class="check-btn ${t.done?'checked':''}" onclick="toggle(${t.id})" aria-label="${t.done?'Mark incomplete':'Mark complete'}"></button>
+      <div class="task-body">
+        <div class="task-title">${t.text}</div>
+        <div class="task-meta">
+          ${t.dt ? `<span class="task-date ${od?'overdue-label':up?'upcoming-label':''}"><i class="ti ti-clock" aria-hidden="true"></i>${fmtDate(t.dt)}</span>` : ''}
+          ${l ? `<span class="list-tag" style="background:${tagBg};color:${tagColor}">${l.name}</span>` : ''}
+        </div>
+      </div>
+      <div class="task-actions">
+        <button class="icon-btn" onclick="startEdit(${t.id})" aria-label="Edit task" title="Edit"><i class="ti ti-edit" aria-hidden="true"></i></button>
+        <button class="icon-btn del" onclick="deleteTask(${t.id})" aria-label="Delete task" title="Delete"><i class="ti ti-trash" aria-hidden="true"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addTask() {
+  const inp = document.getElementById('new-task-input');
+  const dt = document.getElementById('new-task-date');
+  const text = inp.value.trim();
+  if (!text) { inp.focus(); return; }
+  const listId = activeList === 'all' ? (lists[0]?.id || 'personal') : activeList;
+  tasks.unshift({ id: nextId++, text, listId, done: false, dt: dt.value||'', editing: false });
+  inp.value = ''; dt.value = '';
+  inp.focus();
+  render();
+}
+
+function toggle(id) {
+  const t = tasks.find(x=>x.id===id);
+  if (t) { t.done = !t.done; render(); }
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(x=>x.id!==id);
+  render();
+}
+
+function startEdit(id) {
+  tasks.forEach(t => { t.editing = false; });
+  const t = tasks.find(x=>x.id===id);
+  if (t) { t.editing = true; render(); setTimeout(()=>{ const el=document.getElementById('edit-text-'+id); if(el)el.focus(); },50); }
+}
+
+function saveEdit(id) {
+  const t = tasks.find(x=>x.id===id);
+  const inp = document.getElementById('edit-text-'+id);
+  const dt = document.getElementById('edit-dt-'+id);
+  if (t && inp) { t.text = inp.value.trim()||t.text; t.dt = dt ? dt.value : t.dt; t.editing = false; render(); }
+}
+
+function cancelEdit(id) {
+  const t = tasks.find(x=>x.id===id);
+  if (t) { t.editing = false; render(); }
+}
+
+function setList(id) { activeList = id; filter = 'all'; document.querySelectorAll('.filter-btn').forEach(b=>{b.classList.toggle('active',b.dataset.filter==='all');}); render(); }
+function setFilter(f, btn) { filter = f; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); render(); }
+
+function openAddList() {
+  newListColor = COLORS[0];
+  renderColorPicks();
+  document.getElementById('new-list-name').value = '';
+  document.getElementById('add-list-modal').style.display = 'flex';
+  setTimeout(()=>document.getElementById('new-list-name').focus(),50);
+}
+function closeAddList() { document.getElementById('add-list-modal').style.display = 'none'; }
+function renderColorPicks() {
+  document.getElementById('color-picks').innerHTML = COLORS.map(c =>
+    `<div class="color-pick ${c===newListColor?'selected':''}" style="background:${c}" onclick="pickColor('${c}')" role="radio" aria-label="color ${c}" aria-checked="${c===newListColor}"></div>`
+  ).join('');
+}
+function pickColor(c) { newListColor = c; renderColorPicks(); }
+function confirmAddList() {
+  const name = document.getElementById('new-list-name').value.trim();
+  if (!name) return;
+  const id = 'list-' + Date.now();
+  lists.push({ id, name, color: newListColor });
+  closeAddList();
+  activeList = id;
+  render();
+}
+
+render();
+</script>
