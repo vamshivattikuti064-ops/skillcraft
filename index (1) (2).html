@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stopwatch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c27;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.12);
+      --accent: #6c63ff;
+      --accent2: #a78bfa;
+      --text: #f0effe;
+      --muted: #7c7a96;
+      --fast: #34d399;
+      --slow: #f87171;
+      --mono: 'DM Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+      --radius: 16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% -10%, rgba(108,99,255,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 80% 100%, rgba(167,139,250,0.08) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .header h1 {
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .clock-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem 2rem;
+    }
+
+    .ring-wrap {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 2rem;
+    }
+    .ring-svg {
+      transform: rotate(-90deg);
+      width: 200px;
+      height: 200px;
+    }
+    .ring-bg {
+      fill: none;
+      stroke: var(--surface2);
+      stroke-width: 5;
+    }
+    .ring-track {
+      fill: none;
+      stroke: url(#ringGrad);
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-dasharray: 553;
+      stroke-dashoffset: 553;
+      transition: stroke-dashoffset 0.08s linear;
+    }
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .time-main {
+      font-family: var(--mono);
+      font-size: 46px;
+      font-weight: 300;
+      color: var(--text);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .time-cs {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 300;
+      color: var(--accent2);
+      margin-top: 4px;
+    }
+
+    .status-wrap { text-align: center; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 5px 14px;
+      background: var(--surface2);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s;
+    }
+    .status-dot.running {
+      background: var(--fast);
+      box-shadow: 0 0 6px var(--fast);
+      animation: blink 1s infinite;
+    }
+    .status-dot.paused { background: var(--slow); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      height: 44px;
+      padding: 0 22px;
+      border-radius: 100px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text);
+      transition: transform 0.1s, background 0.15s;
+      outline: none;
+    }
+    .btn:hover { background: rgba(255,255,255,0.08); }
+    .btn:active { transform: scale(0.96); }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      min-width: 110px;
+    }
+    .btn-primary:hover { background: #7d75ff; }
+    .btn-pause {
+      background: transparent;
+      border-color: var(--border2);
+      color: var(--text);
+      min-width: 110px;
+    }
+    .btn-pause:hover { background: rgba(255,255,255,0.07); }
+
+    .icon {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .stats-row {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 1.5rem;
+    }
+    .stat-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 400;
+    }
+    .stat-value.fast { color: var(--fast); }
+    .stat-value.slow { color: var(--slow); }
+
+    .laps-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: none;
+    }
+    .laps-panel.visible { display: block; }
+
+    .laps-head {
+      display: grid;
+      grid-template-columns: 52px 1fr 1fr 56px;
+      padding: 10px 16px;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .laps-head span:last-child { text-align: right; }
+
+    .laps-body {
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .laps-body::-webkit-scrollbar { width: 4px; }
+    .laps-body::-webkit-scrollbar-track { background: transparent; }
+    .laps-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    .lap-row {
+      display: grid;
+      grid-template-columns: 52px 1fr 1fr 56px;
+      align-items: center;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      animation: fadeIn 0.2s ease;
+    }
+    .lap-row:last-child { border-bottom: none; }
+    .lap-row:hover { background: var(--surface2); }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:translateY(0); } }
+
+    .lap-num { color: var(--muted); font-weight: 500; }
+    .lap-split { font-family: var(--mono); }
+    .lap-total { font-family: var(--mono); color: var(--muted); }
+    .lap-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+      text-align: right;
+      letter-spacing: 0.04em;
+    }
+    .lap-badge.fast { background: rgba(52,211,153,0.15); color: var(--fast); }
+    .lap-badge.slow { background: rgba(248,113,113,0.15); color: var(--slow); }
+
+    .empty-msg {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 2.5rem 1rem;
+    }
+
+    @media (max-width: 400px) {
+      .time-main { font-size: 38px; }
+      .ring-wrap { width: 170px; height: 170px; }
+      .ring-svg { width: 170px; height: 170px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header"><h1>Stopwatch</h1></div>
+
+  <div class="clock-card">
+    <div class="ring-wrap">
+      <svg class="ring-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6c63ff"/>
+            <stop offset="100%" stop-color="#a78bfa"/>
+          </linearGradient>
+        </defs>
+        <circle class="ring-bg" cx="100" cy="100" r="88"/>
+        <circle class="ring-track" id="ringArc" cx="100" cy="100" r="88"/>
+      </svg>
+      <div class="ring-center">
+        <div class="time-main"><span id="mm">00</span>:<span id="ss">00</span></div>
+        <div class="time-cs">.<span id="cs">00</span></div>
+      </div>
+    </div>
+
+    <div class="status-wrap">
+      <div class="status-pill">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Ready</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="resetBtn" onclick="resetSW()" disabled>
+        <svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.18"/></svg>
+        Reset
+      </button>
+      <button class="btn btn-primary" id="startBtn" onclick="toggleSW()">
+        <svg class="icon" id="playIcon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span id="startLabel">Start</span>
+      </button>
+      <button class="btn" id="lapBtn" onclick="recordLap()" disabled>
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Lap
+      </button>
+    </div>
+
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card">
+        <div class="stat-label">Fastest lap</div>
+        <div class="stat-value fast" id="fastLap">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Slowest lap</div>
+        <div class="stat-value slow" id="slowLap">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="laps-panel" id="lapsPanel">
+    <div class="laps-head">
+      <span>Lap</span><span>Split</span><span>Total</span><span></span>
+    </div>
+    <div class="laps-body" id="lapsBody">
+      <div class="empty-msg">Press Lap to record intervals</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let running = false, startTime = 0, elapsed = 0, raf = null, laps = [];
+  const $ = id => document.getElementById(id);
+
+  function fmt(ms) {
+    const t = Math.floor(ms / 10);
+    return {
+      m:  String(Math.floor(t / 6000)).padStart(2,'0'),
+      s:  String(Math.floor(t / 100) % 60).padStart(2,'0'),
+      cs: String(t % 100).padStart(2,'0')
+    };
+  }
+  function fmtStr(ms) { const f = fmt(ms); return `${f.m}:${f.s}.${f.cs}`; }
+
+  function tick() {
+    elapsed = Date.now() - startTime;
+    const f = fmt(elapsed);
+    $('mm').textContent = f.m;
+    $('ss').textContent = f.s;
+    $('cs').textContent = f.cs;
+    $('ringArc').style.strokeDashoffset = (553 - ((elapsed/1000) % 60 / 60) * 553).toFixed(2);
+    raf = requestAnimationFrame(tick);
+  }
+
+  function toggleSW() {
+    if (!running) {
+      startTime = Date.now() - elapsed;
+      running = true;
+      raf = requestAnimationFrame(tick);
+      $('startBtn').className = 'btn btn-pause';
+      $('startLabel').textContent = 'Pause';
+      $('playIcon').innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+      $('lapBtn').disabled = false;
+      $('resetBtn').disabled = false;
+      $('statusDot').className = 'status-dot running';
+      $('statusText').textContent = 'Running';
+      $('lapsPanel').classList.add('visible');
+    } else {
+      cancelAnimationFrame(raf);
+      running = false;
+      $('startBtn').className = 'btn btn-primary';
+      $('startLabel').textContent = 'Resume';
+      $('playIcon').innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+      $('statusDot').className = 'status-dot paused';
+      $('statusText').textContent = 'Paused';
+    }
+  }
+
+  function resetSW() {
+    cancelAnimationFrame(raf);
+    running = false; elapsed = 0; laps = [];
+    ['mm','ss','cs'].forEach(id => $(id).textContent = '00');
+    $('ringArc').style.strokeDashoffset = '553';
+    $('startBtn').className = 'btn btn-primary';
+    $('startLabel').textContent = 'Start';
+    $('playIcon').innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    $('lapBtn').disabled = true;
+    $('resetBtn').disabled = true;
+    $('statusDot').className = 'status-dot';
+    $('statusText').textContent = 'Ready';
+    $('statsRow').style.display = 'none';
+    $('lapsPanel').classList.remove('visible');
+    $('lapsBody').innerHTML = '<div class="empty-msg">Press Lap to record intervals</div>';
+  }
+
+  function recordLap() {
+    const splitMs = elapsed - laps.reduce((a, l) => a + l.split, 0);
+    laps.push({ num: laps.length + 1, split: splitMs, total: elapsed });
+    renderLaps();
+  }
+
+  function renderLaps() {
+    const splits = laps.map(l => l.split);
+    const min = Math.min(...splits), max = Math.max(...splits);
+    const multi = laps.length > 1;
+    $('lapsBody').innerHTML = [...laps].reverse().map(l => {
+      const badge = multi
+        ? (l.split === min ? '<span class="lap-badge fast">Best</span>'
+          : l.split === max ? '<span class="lap-badge slow">Slow</span>'
+          : '<span></span>')
+        : '<span></span>';
+      return `<div class="lap-row">
+        <span class="lap-num">#${l.num}</span>
+        <span class="lap-split">${fmtStr(l.split)}</span>
+        <span class="lap-total">${fmtStr(l.total)}</span>
+        ${badge}
+      </div>`;
+    }).join('');
+    if (multi) {
+      $('statsRow').style.display = 'grid';
+      $('fastLap').textContent = fmtStr(min);
+      $('slowLap').textContent = fmtStr(max);
+    }
+  }
+</script>
+</body>
+</html>
